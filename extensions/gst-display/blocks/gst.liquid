@@ -1,0 +1,54 @@
+{% assign current_product = block.settings.product | default: product %}
+{% assign price = current_product.price | divided_by: 100.0 %}
+
+<div class="ak-gst-display" {{ block.shopify_attributes }}>
+  <p>Product Price: Rs. {{ price }}</p>
+  <p id="gst-value-{{ block.id }}">Loading GST...</p>
+</div>
+
+<script>
+  (() => {
+    const price = {{ price }};
+    const gstValue = document.getElementById("gst-value-{{ block.id }}");
+
+    if (!gstValue) return;
+
+    fetch("/apps/gst?price=" + price)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("GST request failed");
+        }
+
+        return res.json();
+      })
+      .then((data) => {
+        gstValue.innerText =
+          `GST (${data.gstRate}%): Rs. ${data.gst}`;
+      })
+      .catch(() => {
+        gstValue.innerText = "GST unavailable";
+      });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "GST Display",
+  "target": "section",
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "settings": [
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Product",
+      "autofill": true
+    },
+    {
+      "type": "paragraph",
+      "content": "Shows GST for the current product."
+    }
+  ]
+}
+{% endschema %}
